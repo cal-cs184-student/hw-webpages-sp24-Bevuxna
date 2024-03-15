@@ -1,7 +1,456 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Homework 3 index.html here
-	</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homework 3</title>
+	<title>Center Image in HTML</title>
+	<style>
+		.center {
+			display: flex;
+			justify-content: center;
+		}
+	</style>
+</head>
+<body>
+    <h1>Homework 3</h1>
+	<!-- Overview -->
+    <section>
+        <h2>Overview</h2>
+
+        <ol>
+        In this homework, we go through the process of rendering a simple scene using ray tracing.
+        In Part 1, we generated rays to simulate a camera's view and tested them for intersections with objects in the scene. 
+        Part 2 introduced the Bounding Volume Hierarchy (BVH) data structure to speed up intersection tests by organizing objects hierarchically. 
+        Direct Illumination in Part 3 focused on computing the lighting from visible light sources directly hitting surfaces. 
+        Part 4 extended this to Global Illumination, considering indirect lighting effects for more realistic scenes. 
+        Finally, Part 5 introduced Adaptive Sampling, dynamically adjusting sample counts to improve efficiency on higher sampling rate per pixel.
+			<ol>
+				In this assignment, 
+				Webpage: <br>
+				Zimo Fan:<a href=" ">https://github.com/cal-cs184-student/hw-webpages-sp24-Leona-Fan/blob/master/hw3/index.html</a><br>
+				Xinzhe Wei:<a href=" ">https://github.com/cal-cs184-student/hw-webpages-sp24-Bevuxna/blob/master/hw3/index.html</a>
+			</ol>
+        </ol>
+    </section>
+
+	<div id="part1">
+        <h2>Part 1</h2>
+        <ol>
+            <li><b>Walk through the ray generation and primitive intersection parts of the rendering pipeline.</b><br>
+            For ray generation,we first generate rays from the camera.Then, we determine the intersection of the ray with the scene. For each pixel in the image, a corresponding ray is generated.
+            The ray's origin is set to the camera's position, and its direction is determined by casting a ray from the camera through the pixel's position on the image plane.
+            These rays represent the paths of light traveling from the camera into the scene, allowing us to simulate the view of the scene from the camera's perspective.<br>
+            For primitive ntersection, once rays are generated, the next step is to determine if they intersect with any primitives like triangles in the scene.
+            This intersection test is crucial for determining which objects are visible in the rendered image.
+            The BVH is used to accelerate the intersection testing process by organizing the scene primitives into a hierarchical data structure.   
+            By traversing the BVH, we can quickly identify which primitives may intersect with a given ray.
+            For each primitive, an intersection test is performed to check if the ray intersects with it.
+            If an intersection is found, information about the intersection point, such as the position, surface normal, and material properties, is recorded.
+            This process continues until all rays have been tested for intersections with scene primitives.
+            The results of these intersection tests are used to determine the color and appearance of each pixel in the final rendered image.</li><br>
+
+            <li><b>Explain the triangle intersection algorithm you implemented in your own words.</b><br>
+            We first check if t falls within the valid range of the ray. If it does, we verify whether the intersection point lies within the triangle by calculating its barycentric coordinates. 
+            If the point is inside the triangle, we interpolate the surface normal at the intersection point using the vertex normals. 
+            Finally, we update the Intersection data with the intersection details and return true if an intersection is found, otherwise fals</li><br>
+            <li><b>Show images with normal shading for a few small .dae files.</b><br></li><br>
+            <div class="center">
+				<img src="2.png" alt="small .dae files" width="300" height="200">
+			</div>
+			<div class="center">
+				small .dae 1
+			</div>
+            <div class="center">
+				<img src="5.png" alt="small .dae files" width="300" height="200">
+			</div>
+			<div class="center">
+				small .dae 2
+			</div>
+        </ol>
+    </div>
+    
+    <div id="part2">
+        <h2>Part 2</h2>
+        <ol>
+            <li><b>Walk through your BVH construction algorithm. Explain the heuristic you chose for picking the splitting point.</b><br>
+            We first compute the bounding box of the primitives within the current range. This bounding box encapsulates all the primitives and serves as a spatial boundary.
+            Then we calculate the number of primitives in the current range, we create a new BVHNode with the computed bounding box. If the number of primitives is within the specified maximum leaf size, we create a leaf node and store the primitives within it.
+            If there are more primitives than the maximum leaf size, we need to further subdivide the space. To do this, we identify the axis with the largest extent of the bounding box. This axis provides the most significant spatial dimension along which to split the primitives.
+            Next, we sort the primitives along this axis to facilitate efficient splitting. Sorting ensures that the primitives are arranged in such a way that the splitting plane divides them evenly, optimizing the BVH structure.
+            Once sorted, we calculate the mid-point index to split the primitives into two roughly equal halves. We then recursively construct the left and right children of the node using the primitives split at the mid-point.
+            This recursive will continue until leaf nodes containing a small number of primitives or until the entire BVH tree has been constructed.<br>
+            Overall, our heuristic for picking the splitting point is based on selecting the axis with the largest extent of the bounding box. This approach helps maintain balance within the BVH tree and facilitates efficient traversal during ray intersection tests.</li><br>
+            <li><b>Show images with normal shading for a few large .dae files that you can only render with BVH acceleration.</b></li><br>
+            <div class="center">
+				<img src="3.png" alt="small .dae files" width="300" height="200">
+			</div>
+			<div class="center">
+				large .dae 1
+			</div>
+            <div class="center">
+				<img src="4.png" alt="small .dae files" width="300" height="200">
+			</div>
+			<div class="center">
+				large .dae 2
+			</div>
+            <li><b>Compare rendering times on a few scenes with moderately complex geometries with and without BVH acceleration. Present your results in a one-paragraph analysis.</b></li><br>
+            Without BVH acceleration, rendering a scene with moderately complex geometries takes about 10 minutes on my virtual machine. With BVH acceleration, rendering the same scene takes about 2 seconds.
+        </ol>
+    </div>
+
+    <div id="part3">
+        <h2>Part 3</h2>
+        <ol>
+            <li><b>Walk through both implementations of the direct lighting function.</b></li><br>
+            Uniform Hemisphere Sampling:<br>
+                Firstly we sample uniformly on the hemisphere centered at the intersection using hemisphereSampler->get_sample() function.<br>
+                Then for each sample, calculate the back-tracing ray and find its intersection with BVH.<br>
+                Then we calculate the differential elements of luminance based on the BSDF attributes of both intersections, and accumulate them.<br>
+                Thus far, we have the output luminance of this ray by this process of Monte Carlo estimated Integration.<br>
+                <br>
+            Importance Sampling Lights:<br>
+                For each light in the scene, we first determine how many samples to take according to whether it's a point light source and the setting "number of samples per area".<br>
+                And for each sample, similar to Hemisphere Sampling but use the sample_L function to additionally obtain the distance between the light source and the intersection, as well as the value of the probability distribution function.<br>
+                The rest is mostly the same with the previous part, where we calculate the back-tracing ray, then the differential elements of luminance, and accumulate to get the luminance of this light.<br>
+                Finally we accumulate the luminance over all the lights and obtain the output luminance.<br>
+                <br>
+            <li><b>Show some images rendered with both implementations of the direct lighting function.</b></li><br>
+            
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="onebouncehemi168.png" align="middle" width="400px"/>
+                      <figcaption>Uniform Hemisphere Sampling with s=16, l=8</figcaption>
+                    </td>
+                    <td>
+                      <img src="onebouncehemi6432.png" align="middle" width="400px"/>
+                      <figcaption>Uniform Hemisphere Sampling with s=64, l=32</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="importance168.png" align="middle" width="400px"/>
+                      <figcaption>Importance Sampling with s=16, l=8</figcaption>
+                    </td>
+                    <td>
+                      <img src="onebounceimportance6432.png" align="middle" width="400px"/>
+                      <figcaption>Importance Sampling with s=64, l=32</figcaption>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            <br>
+            
+            Under the comparison above, the most noticable difference is that the results from Uniform Hemisphere Sampling are highly noisy and have lots of "black pixels", because in this approach it is much more likely to take non-light source as sampled back-traced ray and resulting in a much darker result than it should have been.<br>
+            <br>
+
+            <li><b>Focus on one particular scene with at least one area light and compare the noise levels in soft shadows when rendering with 1, 4, 16, and 64 light rays (the -l flag) and with 1 sample per pixel (the -s flag) using light sampling, not uniform hemisphere sampling.</b></li><br>
+            
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="onebounceimportance11.png" align="middle" width="400px"/>
+                      <figcaption>Importance Sampling with s=1, l=1</figcaption>
+                    </td>
+                    <td>
+                      <img src="imp14.png" align="middle" width="400px"/>
+                      <figcaption>Importance Sampling with s=1, l=4</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="imp116.png" align="middle" width="400px"/>
+                      <figcaption>Importance Sampling with s=1, l=16</figcaption>
+                    </td>
+                    <td>
+                      <img src="imp164.png" align="middle" width="400px"/>
+                      <figcaption>Importance Sampling with s=1, l=64</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+            <br>
+            As shown in the four images, the more we sample on the intersection point, the less noise there is because the Monte Carlo estimation is more likely to be closer to the correct value.<br>
+            There's also an interesting phenomenon, in the above four images we can notice that there are "burrs" at the edges. That's why we also need to sample many rays within a pixel, because of the aliasing effect caused by rasterization. This is actually a way of supersampling.<br>
+            <br>
+
+            <br>
+            <li><b>Compare the results between uniform hemisphere sampling and lighting sampling in a one-paragraph analysis.</b><br>
+                When the same number of samples are taken per pixel per light, important sampling over the light source yields a "smoother" result as opposed to uniform sampling over the hemisphere with much more noise.<br>
+                This is because in hemisphere sampling, many sample rays fail to intersect with a light source, resulting in high variance and noisy rendered output. Conversely, when sampling over the light source, it is ensured that the ray will hit the light source if there is no intersection in between so more focused on the important area, making it converges more easily.</li><br>
+        </ol>
+    </div>
+
+    <div id="part4">
+        <h2>Part 4 (spoil alert: many many rabbits ahead)</h2>
+        <ol>
+            <li><b>Walk through your implementation of the indirect lighting function.</b></li><br>
+                Firstly we call the one bounce radiance function on this input ray and intersection to obtain the radiance of this back traced ray (whatever depth).<br>
+                Then according to the depth of this ray and the result of the roulette, assign the L_out (whether to accumulate or to substitute).<br>
+                The rest are mostly the same as in the previous parts.<br>
+                <br>
+            <li><b>Show some images rendered with global (direct and indirect) illumination. Use 1024 samples per pixel.</b></li><br>
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="global6416.png" align="middle" width="400px"/>
+                      <figcaption>Global illumination with both direct and indirect lighting Bunny</figcaption>
+                    </td>
+                    <td>
+                      <img src="globalsphere.png" align="middle" width="400px"/>
+                      <figcaption>Global illumination with both direct and indirect lighting Spheres</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="onebounceimportance6432.png" align="middle" width="400px"/>
+                      <figcaption>Direct lighting only Bunny</figcaption>
+                    </td>
+                    <td>
+                      <img src="directsphere.png" align="middle" width="400px"/>
+                      <figcaption>Direct lighting only Sphere</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+            <li><b>Pick one scene and compare rendered views first with only direct illumination, then only indirect illumination. Use 1024 samples per pixel. (You will have to edit PathTracer::at_least_one_bounce_radiance(...) in your code to generate these views.)</b></li><br>
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="directonly.png" align="middle" width="400px"/>
+                      <figcaption>Direct lighting only (zero bounce and one bounce)</figcaption>
+                    </td>
+                    <td>
+                      <img src="indirectonly.png" align="middle" width="400px"/>
+                      <figcaption>Indirect lighting only (≥ two bounces)</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+            The direct lighting only bunny is way brighter but with heavier shadow and dark corners and completely dark ceiling. That's because there are only zero bounce (light source itself) and one bounce, the ceiling only reflects the light bouced off from the room and the area under the bunny can't receive any light with the same reason. Like a scene in a horror movie.<br>
+            <br>
+            The indirect lighting only bunny is dimmer, but with lit ceiling and brighter corners, as well as a much softer shadow. Obviously these area is now brighter because they recieve light reflected from other objects. What's interesting is that in this image the corners seem even a little brighter than the rest. That's because in the indirect lighting, the second bounce is the brightest and therefore dominant the image. And because of the special geometrical properties a cube have (sort of like a complementary of the one bounce), the corners tend to recieve more light reflected from other area than other area. That's why this strange thing happens.<br>
+            <br>
+            <li><b>For CBbunny.dae, render the mth bounce of light with max_ray_depth set to 0, 1, 2, 3, 4, and 5 (the -m flag), and isAccumBounces=false. Explain in your writeup what you see for the 2nd and 3rd bounce of light, and how it contributes to the quality of the rendered image compared to rasterization. Use 1024 samples per pixel.</b></li><br>
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="md0.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=0, m=0</figcaption>
+                    </td>
+                    <td>
+                      <img src="md1.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=0, m=1</figcaption>
+                    </td>
+                    <td>
+                        <img src="md2.png" align="middle" width="400px"/>
+                        <figcaption>Global Bunny with o=0, m=2</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="md3.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=0, m=3</figcaption>
+                    </td>
+                    <td>
+                        <img src="md4.png" align="middle" width="400px"/>
+                        <figcaption>Global Bunny with o=0, m=4</figcaption>
+                    </td>
+                    <td>
+                      <img src="md5.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=0, m=5</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+            For m=0: Zero bounce only, so only the light source itself.<br>
+            For m=1: One bounce only, ceiling is completely dark, corners are dark, shadow is heavy, as we analyzed in the previous part.<br>
+            For m≥2: The image gets dimmer, because there are energy loss over bounces and also some rays flee out of the scene. The light is completely black is because it doesn't diffuse BSDFs.<br>
+            <br>
+            <li><b>For CBbunny.dae, compare rendered views with max_ray_depth set to 0, 1, 2, 3, 4, and 5(the -m flag). Use 1024 samples per pixel.</b></li><br>
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="md0.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=0</figcaption>
+                    </td>
+                    <td>
+                      <img src="mda1.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=1</figcaption>
+                    </td>
+                    <td>
+                        <img src="mda2.png" align="middle" width="400px"/>
+                        <figcaption>Global Bunny with o=1, m=2</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="mda3.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=3</figcaption>
+                    </td>
+                    <td>
+                        <img src="mda4.png" align="middle" width="400px"/>
+                        <figcaption>Global Bunny with o=1, m=4</figcaption>
+                    </td>
+                    <td>
+                      <img src="mda5.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=5</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+            As max ray depth increases, the image gets more accurate and brighter because the radiances are accumulated.<br>
+            <br>
+            <li><b>For CBbunny.dae, output the Russian Roulette rendering with max_ray_depth set to 0, 1, 2, 3, 4, and 100(the -m flag). Use 1024 samples per pixel.</b></li><br>
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="md0.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=0</figcaption>
+                    </td>
+                    <td>
+                      <img src="mda1.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=1</figcaption>
+                    </td>
+                    <td>
+                        <img src="mda2.png" align="middle" width="400px"/>
+                        <figcaption>Global Bunny with o=1, m=2</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="mda3.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=3</figcaption>
+                    </td>
+                    <td>
+                        <img src="mda4.png" align="middle" width="400px"/>
+                        <figcaption>Global Bunny with o=1, m=4</figcaption>
+                    </td>
+                    <td>
+                      <img src="mda100.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=100</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+
+
+
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="mda5.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=5</figcaption>
+                    </td>
+                    <td>
+                      <img src="mda100.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with o=1, m=100</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+
+            As max ray depth increases, the image gets more accurate and brighter because the radiances are accumulated. Also when m is large enough (probably greater than 5) the differences would be unnoticable because the back traced ray is now very dark. As we can see between the comparison of m=5 and m=100.<br>
+            <br>
+            <li><b>Pick one scene and compare rendered views with various sample-per-pixel rates, including at least 1, 2, 4, 8, 16, 64, and 1024. Use 4 light rays.</b></li><br>
+            
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="s1.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with s=1</figcaption>
+                    </td>
+                    <td>
+                      <img src="s2.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with s=2</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="s4.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with s=4</figcaption>
+                    </td>
+                    <td>
+                      <img src="s8.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with s=8</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="s16.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with s=16</figcaption>
+                    </td>
+                    <td>
+                      <img src="s64.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with s=64</figcaption>
+                    </td>
+                  </tr>
+                  <tr align="center">
+                    <td>
+                      <img src="s1024.png" align="middle" width="400px"/>
+                      <figcaption>Global Bunny with s=1024</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+            As s gets larger the less noice there would be. Again, the importance of sampling within a pixel, similar to "anti-aliasing" as analized in part 3.<br>
+            <br>
+            <li><b>You will probably want to use the instructional machines for the above renders in order to not burn up your own computer for hours.</b></li><br>
+            Haha, I use my rented remote server machine. May less powerful but still enough for rendering these.<br>
+        </ol>
+    </div>
+
+    <div id="part5">
+        <h2>Part 5</h2>
+        <ol>
+            <li><b>Explain adaptive sampling. Walk through your implementation of the adaptive sampling.</b></li><br>
+            Adaptive sampling is used to improve efficiency with high sampling numbers per pixel. The idea is when the color of the samples doesn't change too much within a pixel, that means the color would converge quickly so we can stop sampling more. And how we determine that is by calculating the variance of the collected data. With adaptive sampling we can set s value higher.<br>
+            How we implemented it is that we add a conditional statement in the sampling loop, if the I value is below the threshold then we break from the loop and stop sampling more.<br>
+            <br>
+            <li><b>Pick two scenes and render them with at least 2048 samples per pixel. Show a good sampling rate image with clearly visible differences in sampling rate over various regions and pixels. Include both your sample rate image, which shows your how your adaptive sampling changes depending on which part of the image you are rendering, and your noise-free rendered result. Use 1 sample per light and at least 5 for max ray depth.</b></li><br>
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="finalbunny.png" align="middle" width="400px"/>
+                      <figcaption>Bunny with s=2048</figcaption>
+                    </td>
+                    <td>
+                      <img src="bunnyheat.png" align="middle" width="400px"/>
+                      <figcaption>Bunny's sample rate heatmap</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+            <div align="middle">
+                <table style="width:100%">
+                  <tr align="center">
+                    <td>
+                      <img src="spheres.png" align="middle" width="400px"/>
+                      <figcaption>Spheres with s=2048</figcaption>
+                    </td>
+                    <td>
+                      <img src="spheres_heat.png" align="middle" width="400px"/>
+                      <figcaption>Spheres' sample rate heatmap</figcaption>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+            As we can see from the images above, the area where the sampling rate is high are mainly corners, edges, the area below the objects. There are two reasons:<br>
+            i、If there are indeed two colors in a pixel like the edge of the light. Pixels in this area have two colors: from the light and on the ceiling. So we need to collect enough samples to make it converge.<br>
+            ii、If there are many different colors in the surrounding area. Like the corners where are adjacent to different colored walls. The samples can vary massively over color, and here we also need to collect enough samples to converge.<br>
+
+        </ol>
+    </div>
+</body>
 </html>
